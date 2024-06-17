@@ -23,12 +23,14 @@ BLUE1 = (0, 0, 255)
 BLUE2 = (0, 100, 255)
 BLACK = (0,0,0)
 
-BLOCK_SIZE = 20
-SPEED = 40
+BLOCK_SIZE = 20 # the size of each single snake block, like its head
+SPEED = 40 # the speed of the snake
 
 class SnakeGameAI:
 
     def __init__(self, w=640, h=480):
+        # w and h are pixels
+        # There are (w/BLOCK_SIZE) * (h/BLOCK_SIZE) possible positions
         self.w = w
         self.h = h
         # init display
@@ -45,8 +47,8 @@ class SnakeGameAI:
         self.head = Point(self.w/2, self.h/2)
         self.snake = [self.head,
                       Point(self.head.x-BLOCK_SIZE, self.head.y),
-                      Point(self.head.x-(2*BLOCK_SIZE), self.head.y)]
-
+                      Point(self.head.x-(2*BLOCK_SIZE), self.head.y)] # head (first block) and tail (second block and third block)
+        
         self.score = 0
         self.food = None
         self._place_food()
@@ -71,17 +73,20 @@ class SnakeGameAI:
         
         # 2. move
         self._move(action) # update the head
-        self.snake.insert(0, self.head)
+        self.snake.insert(0, self.head) # put the new head as first element and scale of 1 position all the others blocks
         
         # 3. check if game over
         reward = 0
         game_over = False
+        # if collision or if too slow to reach food -> game over
         if self.is_collision() or self.frame_iteration > 100*len(self.snake):
             game_over = True
             reward = -10
             return reward, game_over, self.score
 
         # 4. place new food or just move
+        # We previously added a new block in the head position, so, if we eat, simply we don't remove the last block.
+        # Otherwise, if no food eaten, remove the last element from the snake blocks list (keep constant the number of blocks).
         if self.head == self.food:
             self.score += 1
             reward = 10
@@ -105,19 +110,19 @@ class SnakeGameAI:
         # hits itself
         if pt in self.snake[1:]:
             return True
-
+        
         return False
 
 
     def _update_ui(self):
         self.display.fill(BLACK)
-
+        
         for pt in self.snake:
             pygame.draw.rect(self.display, BLUE1, pygame.Rect(pt.x, pt.y, BLOCK_SIZE, BLOCK_SIZE))
-            pygame.draw.rect(self.display, BLUE2, pygame.Rect(pt.x+4, pt.y+4, 12, 12))
-
+            pygame.draw.rect(self.display, BLUE2, pygame.Rect(pt.x+4, pt.y+4, BLOCK_SIZE-8, BLOCK_SIZE-8))
+            
         pygame.draw.rect(self.display, RED, pygame.Rect(self.food.x, self.food.y, BLOCK_SIZE, BLOCK_SIZE))
-
+        
         text = font.render("Score: " + str(self.score), True, WHITE)
         self.display.blit(text, [0, 0])
         pygame.display.flip()
@@ -132,12 +137,12 @@ class SnakeGameAI:
         if np.array_equal(action, [1, 0, 0]):
             new_dir = clock_wise[idx] # no change
         elif np.array_equal(action, [0, 1, 0]):
-            next_idx = (idx + 1) % 4
+            next_idx = (idx + 1) % 4 # if UP, +1 gives idx=4 (idx=4 does not exists), thanks to %4 we obtain 0 (RIGHT)
             new_dir = clock_wise[next_idx] # right turn r -> d -> l -> u
         else: # [0, 0, 1]
-            next_idx = (idx - 1) % 4
+            next_idx = (idx - 1) # if RIGHT, -1 gives idx=-1, which corresponds to 3 (RIGHT)
             new_dir = clock_wise[next_idx] # left turn r -> u -> l -> d
-
+            
         self.direction = new_dir
 
         x = self.head.x
@@ -150,5 +155,5 @@ class SnakeGameAI:
             y += BLOCK_SIZE
         elif self.direction == Direction.UP:
             y -= BLOCK_SIZE
-
+            
         self.head = Point(x, y)
